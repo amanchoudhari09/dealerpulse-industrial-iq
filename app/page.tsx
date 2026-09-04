@@ -1,47 +1,35 @@
-export default function Page() {
-  return (
-    <main
-      style={{
-        colorScheme: 'light dark',
-        position: 'relative',
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'light-dark(#fff, #000)',
-        color: 'light-dark(#000, #fff)',
-      }}
-    >
-      <svg
-        aria-hidden="true"
-        style={{ width: 80, height: 80 }}
-        width={80}
-        height={80}
-        fill="none"
-        viewBox="0 0 20 20"
-        xmlns="http://www.w3.org/2000/svg"
-        stroke="currentColor"
-        strokeWidth="0.5"
-      >
-        <path
-          d="M14.2 14.2H17V6.9375C17 4.76288 15.2371 3 13.0625 3H5.8V5.8M14.2 14.2V7.79063L7.79062 14.2H14.2ZM14.2 14.2V17H6.9375C4.76288 17 3 15.2371 3 13.0625V5.8H5.8M5.8 5.8V12.2313L12.2313 5.8H5.8Z"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <p
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: 'calc(50% + 56px)',
-          transform: 'translateX(-50%)',
-          whiteSpace: 'nowrap',
-          fontSize: '14px',
-          fontWeight: 500,
-          color: 'light-dark(#71717a, #a1a1aa)',
-        }}
-      >
-        Your v0 generation will show here.
-      </p>
-    </main>
-  )
+'use client'
+
+import { useMemo, useState } from 'react'
+import { ArrowDownRight, ArrowUpRight, Bell, ChevronRight, CircleHelp, Filter, LayoutDashboard, Menu, Search, Settings2, Target, Users, X } from 'lucide-react'
+import { activeLeads, branchStats, branchesById, data, funnel, initials, insights, money, number, overview, pct, repsById, statusLabel, monthSeries } from '@/lib/data'
+
+const nav = [{ label: 'Overview', icon: LayoutDashboard }, { label: 'Branches', icon: Target }, { label: 'Leads', icon: Users }]
+
+function Badge({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'green' | 'amber' | 'red' | 'blue' }) {
+  return <span className={`badge badge-${tone}`}>{children}</span>
 }
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) { return <section className={`card ${className}`}>{children}</section> }
+function Sparkline({ values, color = 'var(--teal)' }: { values: number[]; color?: string }) { const max = Math.max(...values); return <div className="sparkline" aria-hidden="true">{values.map((value, i) => <span key={i} style={{ height: `${Math.max(10, (value / max) * 100)}%`, background: color }} />)}</div> }
+function Kpi({ label, value, note, trend, color, values }: { label: string; value: string; note: string; trend: string; color: string; values: number[] }) { return <Card className="kpi"><div className="kpi-top"><span className="eyebrow">{label}</span><span className="kpi-dot" style={{ background: color }} /></div><strong>{value}</strong><div className="kpi-bottom"><span className={trend.startsWith('+') ? 'positive' : 'negative'}>{trend.startsWith('+') ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{trend}</span><span>{note}</span></div><Sparkline values={values} color={color} /></Card> }
+
+function Sidebar({ active, setActive, open, setOpen }: { active: string; setActive: (x: string) => void; open: boolean; setOpen: (x: boolean) => void }) { return <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}><div className="brand"><div className="brand-mark">D</div><div><strong>DealerPulse</strong><span>Executive OS</span></div><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Close menu"><X size={18} /></button></div><div className="workspace"><div className="workspace-avatar">TA</div><div><strong>Toyota Auto Group</strong><span>Leadership view</span></div><ChevronRight size={14} /></div><nav>{nav.map(({ label, icon: Icon }) => <button key={label} className={active === label ? 'nav-item active' : 'nav-item'} onClick={() => { setActive(label); setOpen(false) }}><Icon size={17} /><span>{label}</span>{label === 'Leads' && <em>{activeLeads.length}</em>}</button>)}</nav><div className="sidebar-bottom"><button className="nav-item"><Settings2 size={17} /><span>Settings</span></button><div className="user-card"><div className="avatar">AR</div><div><strong>Arjun Rao</strong><span>Group CEO</span></div><ChevronRight size={14} /></div></div></aside> }
+
+function Header({ active, onMenu }: { active: string; onMenu: () => void }) { return <header className="topbar"><div className="topbar-title"><button className="icon-button mobile-only" onClick={onMenu} aria-label="Open menu"><Menu size={20} /></button><div><span className="breadcrumb">Workspace /</span><h1>{active}</h1></div></div><div className="top-actions"><button className="icon-button"><Search size={18} /></button><button className="icon-button notification"><Bell size={18} /><i /></button><div className="top-avatar">AR</div></div></header> }
+
+function Overview({ branchId, setBranchId }: { branchId: string; setBranchId: (x: string) => void }) {
+  const stats = overview(branchId); const series = monthSeries(branchId); const branches = branchStats(); const [chartMode, setChartMode] = useState<'units' | 'revenue'>('units'); const [showAll, setShowAll] = useState(false)
+  const targetGap = stats.target - stats.revenue; const visibleBranches = showAll ? branches : branches.slice(0, 4)
+  return <>
+    <div className="page-intro"><div><p className="eyebrow teal">MONDAY, 8 DECEMBER 2025</p><h2>Good morning, Arjun</h2><p className="subhead">Here is what needs your attention across the group.</p></div><div className="header-filters"><select value={branchId} onChange={(e) => setBranchId(e.target.value)} aria-label="Filter by branch"><option value="all">All branches</option>{data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select><button className="filter-button"><Filter size={15} /> This quarter</button></div></div>
+    <div className="kpi-grid"><Kpi label="Revenue" value={money(stats.revenue)} note="vs last quarter" trend="+12.8%" color="var(--teal)" values={[4, 5, 4, 7, 6, 8, 10]} /><Kpi label="Units delivered" value={number(stats.delivered.length)} note="of target" trend="+8.4%" color="var(--blue)" values={[3, 4, 5, 4, 6, 7, 8]} /><Kpi label="Active pipeline" value={money(stats.pipeline)} note={`${stats.active.length} opportunities`} trend="+4.2%" color="var(--violet)" values={[8, 7, 8, 6, 7, 9, 9]} /><Kpi label="Conversion rate" value={pct(stats.conversion)} note="lead to delivery" trend="-1.6%" color="var(--amber)" values={[8, 8, 7, 8, 6, 7, 6]} /></div>
+    <div className="alert-strip"><div className="alert-icon">!</div><div><strong>{activeLeads.length} leads need attention</strong><span>Some opportunities have had no activity in the last 7 days.</span></div><button onClick={() => setBranchId('all')}>Review leads <ChevronRight size={15} /></button></div>
+    <div className="content-grid"><Card className="chart-card"><div className="card-heading"><div><span className="eyebrow">TARGET TRAJECTORY</span><h3>{money(stats.revenue)} <small>of {money(stats.target)} target</small></h3></div><div className="segmented"><button className={chartMode === 'units' ? 'selected' : ''} onClick={() => setChartMode('units')}>Units</button><button className={chartMode === 'revenue' ? 'selected' : ''} onClick={() => setChartMode('revenue')}>Revenue</button></div></div><div className="chart-legend"><span><i className="legend-actual" /> Actual</span><span><i className="legend-target" /> Target</span><span className="chart-status"><span className="status-dot amber" /> {targetGap > 0 ? `${money(targetGap)} gap to target` : 'On target'}</span></div><div className="bar-chart">{series.map((item) => { const actual = chartMode === 'units' ? item.actual : item.actual * 3.2; const target = chartMode === 'units' ? item.target : item.target * 3.2; const max = Math.max(target, actual, 1); return <div className="bar-group" key={item.label}><div className="bar-pair"><span className="bar target" style={{ height: `${Math.max(7, target / max * 100)}%` }} /><span className="bar actual" style={{ height: `${Math.max(7, actual / max * 100)}%` }} /></div><span>{item.label}</span></div> })}</div><div className="method-note"><CircleHelp size={14} /> Actuals are delivered units. Target is the sum of branch targets for the selected period.</div></Card><Card className="action-card"><div className="card-heading"><div><span className="eyebrow">ACTION CENTER</span><h3>Worth your attention</h3></div><button className="dots">•••</button></div><div className="action-list">{insights.map((item) => <div className="action-item" key={item.title}><div className={`action-symbol ${item.tone}`}>{item.tone === 'red' ? '!' : item.tone === 'amber' ? '↗' : 'i'}</div><div><strong>{item.title}</strong><p>{item.body}</p><button className="text-link">Open insight <ChevronRight size={13} /></button></div></div>)}</div></Card></div>
+    <div className="section-heading"><div><span className="eyebrow">OPERATING VIEW</span><h3>Branch performance</h3></div><button className="text-link" onClick={() => setShowAll(!showAll)}>{showAll ? 'Show less' : 'View all branches'} <ChevronRight size={14} /></button></div><Card className="table-card"><div className="table-scroll"><table><thead><tr><th>Branch</th><th>Units</th><th>Target</th><th>Attainment</th><th>Revenue</th><th>Status</th></tr></thead><tbody>{visibleBranches.map((branch) => <tr key={branch.id}><td><a href={`#branch-${branch.id}`} className="table-link"><span className="branch-dot" />{branch.name}<small>{branch.city}</small></a></td><td>{branch.units}</td><td>{branch.targetUnits}</td><td><div className="progress-cell"><div className="progress"><span style={{ width: `${Math.min(branch.attainment * 100, 100)}%` }} /></div><strong>{pct(branch.attainment)}</strong></div></td><td>{money(branch.revenue)}</td><td><Badge tone={branch.attainment >= 0.9 ? 'green' : branch.attainment >= 0.7 ? 'amber' : 'red'}>{branch.attainment >= 0.9 ? 'On track' : branch.attainment >= 0.7 ? 'Watch' : 'At risk'}</Badge></td></tr>)}</tbody></table></div></Card>
+    <div className="bottom-grid"><Card><div className="card-heading"><div><span className="eyebrow">FUNNEL SNAPSHOT</span><h3>Lead progression</h3></div><button className="text-link">View leads <ChevronRight size={13} /></button></div><div className="funnel">{funnel.map((item, index) => <div className="funnel-row" key={item.status}><span>{statusLabel(item.status)}</span><div className="funnel-track"><i style={{ width: `${Math.max(8, item.count / Math.max(...funnel.map((f) => f.count), 1) * 100)}%` }} /></div><strong>{item.count}</strong><small>{index > 0 && funnel[index - 1].count ? `${Math.round(item.count / funnel[index - 1].count * 100)}%` : '—'}</small></div>)}</div></Card><Card><div className="card-heading"><div><span className="eyebrow">TEAM PULSE</span><h3>Top performers</h3></div><button className="text-link">View reps <ChevronRight size={13} /></button></div><div className="rep-list">{data.sales_reps.filter((rep) => rep.role !== 'branch_manager').slice(0, 4).map((rep, index) => <div className="rep-row" key={rep.id}><div className="avatar small">{initials(rep.name)}</div><div><strong>{rep.name}</strong><span>{branchesById[rep.branch_id]?.name}</span></div><b>{[24, 21, 19, 17][index]} units</b><span className="rank">{index + 1}</span></div>)}</div></Card></div>
+  </>
+}
+
+function SecondaryView({ active, branchId }: { active: string; branchId: string }) { const rows = active === 'Branches' ? branchStats() : activeLeads; return <div className="secondary-view"><div className="page-intro"><div><p className="eyebrow teal">OPERATIONS</p><h2>{active}</h2><p className="subhead">Explore the underlying operating detail behind the overview.</p></div><button className="filter-button"><Filter size={15} /> Filter view</button></div><Card className="table-card"><div className="table-scroll"><table><thead><tr>{active === 'Branches' ? <><th>Branch</th><th>City</th><th>Units</th><th>Revenue</th><th>Attainment</th><th>Status</th></> : <><th>Lead</th><th>Model</th><th>Stage</th><th>Owner</th><th>Age</th><th>Value</th></>}</tr></thead><tbody>{rows.map((row: any) => active === 'Branches' ? <tr key={row.id}><td><strong>{row.name}</strong></td><td>{row.city}</td><td>{row.units}</td><td>{money(row.revenue)}</td><td>{pct(row.attainment)}</td><td><Badge tone={row.attainment >= .9 ? 'green' : row.attainment >= .7 ? 'amber' : 'red'}>{row.attainment >= .9 ? 'On track' : 'At risk'}</Badge></td></tr> : <tr key={row.id}><td><strong>{row.customer_name}</strong><small>{row.id}</small></td><td>{row.model_interested}</td><td><Badge tone={row.status === 'order_placed' ? 'amber' : 'blue'}>{statusLabel(row.status)}</Badge></td><td>{repsById[row.assigned_to]?.name}</td><td>{Math.max(1, Math.floor((Date.now() - +new Date(row.last_activity_at)) / 86400000))}d</td><td>{money(row.deal_value)}</td></tr>)}</tbody></table></div></Card></div> }
+
+export default function Page() { const [active, setActive] = useState('Overview'); const [branchId, setBranchId] = useState('all'); const [menuOpen, setMenuOpen] = useState(false); return <div className="app-shell"><Sidebar active={active} setActive={setActive} open={menuOpen} setOpen={setMenuOpen} /><div className="main-shell"><Header active={active} onMenu={() => setMenuOpen(true)} /><main className="main-content">{active === 'Overview' ? <Overview branchId={branchId} setBranchId={setBranchId} /> : <SecondaryView active={active} branchId={branchId} />}</main><footer>DealerPulse · Internal operating view <span>Data through December 2025 · Synthetic dataset</span></footer></div></div> }
